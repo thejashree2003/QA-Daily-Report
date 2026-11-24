@@ -1,0 +1,19 @@
+{
+  "name": "@agentic-ai/xray-integration",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Jira Xray test case generation and Excel export library",
+  "exports": {
+    ".": "./src/index.js",
+    "./requirements-parser": "./src/requirements-parser.js",
+    "./test-case-builder": "./src/test-case-builder.js",
+    "./excel-generator": "./src/excel-generator.js",
+    "./excel-validator": "./src/excel-validator.js",
+    "./traceability": "./src/traceability.js",
+    "./jira-xray-creator": "./src/jira-xray-creator.js"
+  },
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  }
+}

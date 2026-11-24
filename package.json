@@ -1,0 +1,28 @@
+{
+  "name": "agentic-ai-requirement-analysis",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
+  "scripts": {
+    "requirement-analysis": "node scripts/requirement-analysis.js",
+    "requirement-analysis:check": "node scripts/requirement-analysis.js --check",
+    "xray-test-cases": "node scripts/jira-xray-test-case-generator.js",
+    "xray-test-cases:import": "node scripts/jira-xray-test-case-generator.js --import",
+    "test:xray": "node --test packages/xray-integration/test/requirements-parser.test.js packages/xray-integration/test/test-case-builder.test.js packages/xray-integration/test/excel-generator.test.js packages/xray-integration/test/traceability.test.js packages/xray-integration/test/jira-xray-creator.test.js",
+    "test:jira-integration": "node --test packages/jira-integration/test/*.test.js",
+    "test:all": "node --test packages/jira-integration/test/*.test.js packages/xray-integration/test/requirements-parser.test.js packages/xray-integration/test/test-case-builder.test.js packages/xray-integration/test/excel-generator.test.js packages/xray-integration/test/traceability.test.js packages/xray-integration/test/jira-xray-creator.test.js"
+  },
+  "dependencies": {
+    "@microsoft/copilot-sdk": "2.0.1",
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "exceljs": "^4.4.0",
+    "mcp-remote": "0.16.7",
+    "nodemailer": "^10.6.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.1"
+  }
+}

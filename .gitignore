@@ -1,0 +1,10 @@
+# Secrets
+.env
+
+# Generated reports and test output
+reports/
+playwright-report/
+test-results/
+
+# Dependencies
+node_modules/

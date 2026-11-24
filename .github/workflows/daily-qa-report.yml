@@ -1,0 +1,63 @@
+name: Daily QA Report
+
+on:
+  schedule:
+    - cron: '30 3 * * *'   # 09:00 AM IST (03:30 UTC)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  e2e-and-report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright suite
+        continue-on-error: true   # failures must not stop the report from being generated and emailed
+        run: npx playwright test
+        env:
+          SAUCE_PASSWORD: ${{ secrets.SAUCE_PASSWORD }}
+
+      - name: Generate and email daily QA report (read-only)
+        run: node scripts/daily-qa-report.mjs
+        env:
+          JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
+          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          XRAY_CLIENT_ID: ${{ secrets.XRAY_CLIENT_ID }}
+          XRAY_CLIENT_SECRET: ${{ secrets.XRAY_CLIENT_SECRET }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          REPORT_TO: ${{ secrets.REPORT_TO }}
+
+      - name: Upload daily report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: daily-qa-report
+          path: reports/daily-qa-report-*.html
+          if-no-files-found: warn
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          if-no-files-found: warn
