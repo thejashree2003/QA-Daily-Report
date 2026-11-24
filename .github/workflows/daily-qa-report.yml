@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: '30 3 * * *'   # 09:00 AM IST (03:30 UTC)
   workflow_dispatch:
+    inputs:
+      story_key:
+        description: 'Jira story to report on (e.g. AAQA-36)'
+        required: false
+        default: 'AAQA-36'
 
 permissions:
   contents: read
@@ -12,6 +17,9 @@ jobs:
   e2e-and-report:
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    env:
+      # Passed to the script only as an environment variable (validated there); never interpolated into shell code.
+      STORY_KEY: ${{ inputs.story_key || 'AAQA-36' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -34,9 +42,19 @@ jobs:
         env:
           SAUCE_PASSWORD: ${{ secrets.SAUCE_PASSWORD }}
 
-      - name: Generate and email daily QA report (read-only)
+      # Restores the newest run-history snapshot file for this story, and saves the updated one after the job.
+      - name: Restore report history
+        uses: actions/cache@v4
+        with:
+          path: reports/history-*.json
+          key: qa-history-${{ env.STORY_KEY }}-${{ github.run_id }}
+          restore-keys: |
+            qa-history-${{ env.STORY_KEY }}-
+
+      - name: Generate reports and email manager summary (read-only)
         run: node scripts/daily-qa-report.mjs
         env:
+          PAGES_BASE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
           JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
           JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
@@ -46,12 +64,24 @@ jobs:
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           REPORT_TO: ${{ secrets.REPORT_TO }}
 
-      - name: Upload daily report
+      - name: Prepare GitHub Pages site
+        if: always()
+        run: |
+          mkdir -p _site
+          cp reports/*.html _site/ 2>/dev/null || echo "No HTML reports to publish"
+
+      - name: Upload Pages artifact
+        if: always()
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Upload report files
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: daily-qa-report
-          path: reports/daily-qa-report-*.html
+          name: qa-reports
+          path: reports/
           if-no-files-found: warn
 
       - name: Upload Playwright report
@@ -61,3 +91,17 @@ jobs:
           name: playwright-report
           path: playwright-report/
           if-no-files-found: warn
+
+  deploy-pages:
+    needs: e2e-and-report
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
